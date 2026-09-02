@@ -1,0 +1,11 @@
+{
+  "name": "一年级英语口语",
+  "short_name": "英语口语",
+  "start_url": "./index.html",
+  "display": "standalone",
+  "background_color": "#fdf6e3",
+  "theme_color": "#ff7b54",
+  "icons": [
+    { "src": "icon-180.png", "sizes": "180x180", "type": "image/png" }
+  ]
+}

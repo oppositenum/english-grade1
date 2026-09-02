@@ -1,0 +1,618 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>一年级英语口语 · 点一点跟我读</title>
+<link rel="manifest" href="manifest.json">
+<link rel="apple-touch-icon" href="icon-180.png">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="apple-mobile-web-app-title" content="英语口语">
+<meta name="theme-color" content="#ff7b54">
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+  body {
+    font-family: "PingFang SC", "Microsoft YaHei", "Comic Sans MS", sans-serif;
+    background: linear-gradient(160deg, #fdf6e3 0%, #e8f6ff 60%, #eafbe7 100%);
+    min-height: 100vh;
+    color: #3a3a3a;
+  }
+  header {
+    text-align: center;
+    padding: 18px 12px 10px;
+  }
+  header h1 {
+    font-size: 26px;
+    color: #ff7b54;
+    letter-spacing: 1px;
+  }
+  header p { font-size: 14px; color: #888; margin-top: 6px; }
+
+  /* 控制条 */
+  .controls {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    gap: 14px;
+    flex-wrap: wrap;
+    padding: 8px 12px;
+    font-size: 14px;
+  }
+  .controls label { color: #666; }
+  .controls select, .controls button.ctl {
+    font-size: 14px;
+    padding: 6px 10px;
+    border-radius: 12px;
+    border: 2px solid #ffd6a5;
+    background: #fff;
+    color: #444;
+    cursor: pointer;
+  }
+  .controls button.ctl.on { background: #ffb347; color: #fff; border-color: #ffb347; }
+
+  /* 单元标签 */
+  .tabs {
+    display: flex;
+    gap: 8px;
+    overflow-x: auto;
+    padding: 12px 16px;
+    scrollbar-width: none;
+  }
+  .tabs::-webkit-scrollbar { display: none; }
+  .tab {
+    flex: 0 0 auto;
+    padding: 10px 16px;
+    border-radius: 20px;
+    border: none;
+    background: #fff;
+    box-shadow: 0 2px 6px rgba(0,0,0,.08);
+    font-size: 16px;
+    cursor: pointer;
+    color: #555;
+    transition: transform .15s;
+  }
+  .tab:active { transform: scale(.95); }
+  .tab.active {
+    background: #ff7b54;
+    color: #fff;
+    box-shadow: 0 4px 10px rgba(255,123,84,.4);
+  }
+
+  main { max-width: 900px; margin: 0 auto; padding: 6px 16px 60px; }
+  .section-title {
+    font-size: 18px;
+    color: #4a90d9;
+    margin: 18px 4px 10px;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+
+  .grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+    gap: 12px;
+  }
+  .grid.sentences { grid-template-columns: 1fr; }
+  @media (min-width: 640px) {
+    .grid.sentences { grid-template-columns: 1fr 1fr; }
+  }
+
+  .card {
+    background: #fff;
+    border-radius: 18px;
+    padding: 14px 12px;
+    text-align: center;
+    box-shadow: 0 3px 8px rgba(0,0,0,.08);
+    cursor: pointer;
+    border: 3px solid transparent;
+    transition: transform .12s, border-color .12s;
+    user-select: none;
+  }
+  .card:active { transform: scale(.94); }
+  .card.playing {
+    border-color: #ffb347;
+    background: #fff8ec;
+    animation: bounce .5s;
+  }
+  @keyframes bounce {
+    0%,100% { transform: scale(1); }
+    40% { transform: scale(1.06); }
+  }
+  .card .emoji { font-size: 40px; line-height: 1.2; }
+  .card .en {
+    font-size: 20px;
+    font-weight: 700;
+    color: #2c6fb7;
+    margin-top: 6px;
+    font-family: "Comic Sans MS", "Chalkboard SE", "PingFang SC", sans-serif;
+  }
+  .card .zh { font-size: 14px; color: #999; margin-top: 4px; }
+
+  .card.sentence { text-align: left; display: flex; align-items: center; gap: 12px; }
+  .card.sentence .emoji { font-size: 32px; flex: 0 0 auto; }
+  .card.sentence .en { font-size: 18px; margin-top: 0; }
+  .card.sentence .zh { margin-top: 2px; }
+
+  .tip {
+    text-align: center;
+    color: #aaa;
+    font-size: 13px;
+    padding: 20px 12px;
+  }
+  #noVoiceWarn {
+    display: none;
+    background: #fff3cd;
+    color: #856404;
+    border-radius: 12px;
+    padding: 10px 14px;
+    margin: 10px auto;
+    max-width: 600px;
+    font-size: 14px;
+    text-align: center;
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <h1>🐣 一年级英语口语 · 点一点跟我读</h1>
+  <p>点一下卡片，听发音，跟着大声读出来吧！</p>
+</header>
+
+<div class="controls">
+  <label>语速：
+    <select id="rate">
+      <option value="0.7">🐢 很慢</option>
+      <option value="0.85">🚶 慢速</option>
+      <option value="1" selected>🏃 正常</option>
+      <option value="1.15">🚀 快</option>
+    </select>
+  </label>
+  <button class="ctl" id="repeatBtn" title="每次朗读两遍">读两遍：关</button>
+  <label>发音：
+    <select id="modeSel">
+      <option value="fish" selected>🐟 Sarah（Fish 真人感）</option>
+      <option value="ava">👩 Ava（自然有感情）</option>
+      <option value="jenny">👩 Jenny（清晰标准）</option>
+      <option value="ana">👧 Ana（小朋友）</option>
+      <option value="sys">🤖 本机语音</option>
+    </select>
+  </label>
+  <label id="voiceLabel" style="display:none">发音人：
+    <select id="voiceSel"></select>
+  </label>
+</div>
+
+<div id="noVoiceWarn">⚠️ 当前浏览器没有找到英语语音，请换用 Safari 或 Chrome 浏览器试试。</div>
+
+<div class="tabs" id="tabs"></div>
+
+<main id="content"></main>
+
+<div class="tip">💡 建议家长陪同：孩子点卡片听一遍，再大声跟读一遍，每天 10 分钟。</div>
+
+<script>
+const UNITS = [
+  {
+    name: "👋 打招呼",
+    words: [
+      { en: "Hello!", zh: "你好！", emoji: "👋" },
+      { en: "Hi!", zh: "嗨！", emoji: "😊" },
+      { en: "Good morning!", zh: "早上好！", emoji: "🌅" },
+      { en: "Good afternoon!", zh: "下午好！", emoji: "🌞" },
+      { en: "Good evening!", zh: "晚上好！", emoji: "🌆" },
+      { en: "Good night!", zh: "晚安！", emoji: "🌙" },
+      { en: "Goodbye!", zh: "再见！", emoji: "👋" },
+      { en: "See you!", zh: "回头见！", emoji: "🙋" },
+    ],
+    sentences: [
+      { en: "Hello, I'm Amy.", zh: "你好，我是艾米。", emoji: "👧" },
+      { en: "Good morning, Miss Li.", zh: "早上好，李老师。", emoji: "👩‍🏫" },
+      { en: "How are you?", zh: "你好吗？", emoji: "🤗" },
+      { en: "I'm fine, thank you.", zh: "我很好，谢谢你。", emoji: "😄" },
+      { en: "Bye-bye, Mum!", zh: "再见，妈妈！", emoji: "👩" },
+    ],
+  },
+  {
+    name: "🙋 自我介绍",
+    words: [
+      { en: "name", zh: "名字", emoji: "📛" },
+      { en: "boy", zh: "男孩", emoji: "👦" },
+      { en: "girl", zh: "女孩", emoji: "👧" },
+      { en: "friend", zh: "朋友", emoji: "🤝" },
+      { en: "teacher", zh: "老师", emoji: "👩‍🏫" },
+      { en: "pupil", zh: "小学生", emoji: "🎒" },
+    ],
+    sentences: [
+      { en: "What's your name?", zh: "你叫什么名字？", emoji: "❓" },
+      { en: "My name is Bobby.", zh: "我的名字是波比。", emoji: "🐻" },
+      { en: "I'm six years old.", zh: "我六岁了。", emoji: "6️⃣" },
+      { en: "Nice to meet you!", zh: "很高兴认识你！", emoji: "🤗" },
+      { en: "This is my friend.", zh: "这是我的朋友。", emoji: "👫" },
+      { en: "I'm a pupil.", zh: "我是一名小学生。", emoji: "🏫" },
+    ],
+  },
+  {
+    name: "🔢 数字",
+    words: [
+      { en: "one", zh: "一", emoji: "1️⃣" },
+      { en: "two", zh: "二", emoji: "2️⃣" },
+      { en: "three", zh: "三", emoji: "3️⃣" },
+      { en: "four", zh: "四", emoji: "4️⃣" },
+      { en: "five", zh: "五", emoji: "5️⃣" },
+      { en: "six", zh: "六", emoji: "6️⃣" },
+      { en: "seven", zh: "七", emoji: "7️⃣" },
+      { en: "eight", zh: "八", emoji: "8️⃣" },
+      { en: "nine", zh: "九", emoji: "9️⃣" },
+      { en: "ten", zh: "十", emoji: "🔟" },
+    ],
+    sentences: [
+      { en: "How many cats?", zh: "有几只猫？", emoji: "🐱" },
+      { en: "I can see three cats.", zh: "我能看到三只猫。", emoji: "👀" },
+      { en: "One, two, three, go!", zh: "一、二、三，出发！", emoji: "🏁" },
+      { en: "How old are you?", zh: "你几岁了？", emoji: "🎂" },
+    ],
+  },
+  {
+    name: "🌈 颜色",
+    words: [
+      { en: "red", zh: "红色", emoji: "🔴" },
+      { en: "yellow", zh: "黄色", emoji: "🟡" },
+      { en: "blue", zh: "蓝色", emoji: "🔵" },
+      { en: "green", zh: "绿色", emoji: "🟢" },
+      { en: "orange", zh: "橙色", emoji: "🟠" },
+      { en: "purple", zh: "紫色", emoji: "🟣" },
+      { en: "pink", zh: "粉色", emoji: "🌸" },
+      { en: "black", zh: "黑色", emoji: "⚫" },
+      { en: "white", zh: "白色", emoji: "⚪" },
+      { en: "brown", zh: "棕色", emoji: "🟤" },
+    ],
+    sentences: [
+      { en: "What colour is it?", zh: "它是什么颜色？", emoji: "🎨" },
+      { en: "It's red.", zh: "它是红色的。", emoji: "🍎" },
+      { en: "I like blue.", zh: "我喜欢蓝色。", emoji: "💙" },
+      { en: "Look! A green frog!", zh: "看！一只绿色的青蛙！", emoji: "🐸" },
+    ],
+  },
+  {
+    name: "🐼 动物",
+    words: [
+      { en: "cat", zh: "猫", emoji: "🐱" },
+      { en: "dog", zh: "狗", emoji: "🐶" },
+      { en: "bird", zh: "鸟", emoji: "🐦" },
+      { en: "fish", zh: "鱼", emoji: "🐟" },
+      { en: "duck", zh: "鸭子", emoji: "🦆" },
+      { en: "rabbit", zh: "兔子", emoji: "🐰" },
+      { en: "monkey", zh: "猴子", emoji: "🐵" },
+      { en: "panda", zh: "熊猫", emoji: "🐼" },
+      { en: "tiger", zh: "老虎", emoji: "🐯" },
+      { en: "elephant", zh: "大象", emoji: "🐘" },
+    ],
+    sentences: [
+      { en: "What's this?", zh: "这是什么？", emoji: "❓" },
+      { en: "It's a cat.", zh: "这是一只猫。", emoji: "🐱" },
+      { en: "I like pandas.", zh: "我喜欢熊猫。", emoji: "🐼" },
+      { en: "The monkey can jump.", zh: "猴子会跳。", emoji: "🐒" },
+    ],
+  },
+  {
+    name: "👨‍👩‍👧 家人",
+    words: [
+      { en: "mum", zh: "妈妈", emoji: "👩" },
+      { en: "dad", zh: "爸爸", emoji: "👨" },
+      { en: "grandma", zh: "奶奶／外婆", emoji: "👵" },
+      { en: "grandpa", zh: "爷爷／外公", emoji: "👴" },
+      { en: "brother", zh: "哥哥／弟弟", emoji: "👦" },
+      { en: "sister", zh: "姐姐／妹妹", emoji: "👧" },
+      { en: "family", zh: "家庭", emoji: "🏠" },
+    ],
+    sentences: [
+      { en: "This is my mum.", zh: "这是我的妈妈。", emoji: "👩" },
+      { en: "This is my dad.", zh: "这是我的爸爸。", emoji: "👨" },
+      { en: "I love my family.", zh: "我爱我的家。", emoji: "❤️" },
+      { en: "Who's she? She's my sister.", zh: "她是谁？她是我妹妹。", emoji: "👧" },
+    ],
+  },
+  {
+    name: "✏️ 文具",
+    words: [
+      { en: "book", zh: "书", emoji: "📖" },
+      { en: "bag", zh: "书包", emoji: "🎒" },
+      { en: "pen", zh: "钢笔", emoji: "🖊️" },
+      { en: "pencil", zh: "铅笔", emoji: "✏️" },
+      { en: "ruler", zh: "尺子", emoji: "📏" },
+      { en: "rubber", zh: "橡皮", emoji: "🧽" },
+      { en: "desk", zh: "课桌", emoji: "🪑" },
+      { en: "crayon", zh: "蜡笔", emoji: "🖍️" },
+    ],
+    sentences: [
+      { en: "This is my book.", zh: "这是我的书。", emoji: "📖" },
+      { en: "Show me your pencil.", zh: "给我看看你的铅笔。", emoji: "✏️" },
+      { en: "Open your book.", zh: "打开你的书。", emoji: "📖" },
+      { en: "Put it in your bag.", zh: "把它放进书包里。", emoji: "🎒" },
+    ],
+  },
+  {
+    name: "👀 身体",
+    words: [
+      { en: "head", zh: "头", emoji: "🙂" },
+      { en: "face", zh: "脸", emoji: "😊" },
+      { en: "eye", zh: "眼睛", emoji: "👁️" },
+      { en: "ear", zh: "耳朵", emoji: "👂" },
+      { en: "nose", zh: "鼻子", emoji: "👃" },
+      { en: "mouth", zh: "嘴巴", emoji: "👄" },
+      { en: "hand", zh: "手", emoji: "✋" },
+      { en: "foot", zh: "脚", emoji: "🦶" },
+      { en: "arm", zh: "手臂", emoji: "💪" },
+      { en: "leg", zh: "腿", emoji: "🦵" },
+    ],
+    sentences: [
+      { en: "Touch your nose.", zh: "摸摸你的鼻子。", emoji: "👃" },
+      { en: "Clap your hands.", zh: "拍拍手。", emoji: "👏" },
+      { en: "Stamp your feet.", zh: "跺跺脚。", emoji: "🦶" },
+      { en: "Shake your body.", zh: "扭扭身体。", emoji: "🕺" },
+    ],
+  },
+  {
+    name: "🍎 水果",
+    words: [
+      { en: "apple", zh: "苹果", emoji: "🍎" },
+      { en: "banana", zh: "香蕉", emoji: "🍌" },
+      { en: "orange", zh: "橙子", emoji: "🍊" },
+      { en: "pear", zh: "梨", emoji: "🍐" },
+      { en: "peach", zh: "桃子", emoji: "🍑" },
+      { en: "grape", zh: "葡萄", emoji: "🍇" },
+      { en: "watermelon", zh: "西瓜", emoji: "🍉" },
+      { en: "mango", zh: "芒果", emoji: "🥭" },
+    ],
+    sentences: [
+      { en: "I like apples.", zh: "我喜欢苹果。", emoji: "🍎" },
+      { en: "Do you like bananas?", zh: "你喜欢香蕉吗？", emoji: "🍌" },
+      { en: "Yes, I do.", zh: "是的，我喜欢。", emoji: "👍" },
+      { en: "No, I don't.", zh: "不，我不喜欢。", emoji: "👎" },
+      { en: "Have some grapes, please.", zh: "请吃点葡萄吧。", emoji: "🍇" },
+    ],
+  },
+  {
+    name: "🏫 课堂用语",
+    words: [
+      { en: "Stand up.", zh: "起立。", emoji: "🧍" },
+      { en: "Sit down.", zh: "坐下。", emoji: "🪑" },
+      { en: "Hands up.", zh: "举手。", emoji: "🙌" },
+      { en: "Hands down.", zh: "放下手。", emoji: "🙇" },
+      { en: "Very good!", zh: "非常好！", emoji: "👍" },
+      { en: "Great!", zh: "太棒了！", emoji: "🌟" },
+    ],
+    sentences: [
+      { en: "Listen to me, please.", zh: "请听我说。", emoji: "👂" },
+      { en: "Look at me, please.", zh: "请看着我。", emoji: "👀" },
+      { en: "Read after me.", zh: "跟我读。", emoji: "📢" },
+      { en: "Let's sing a song.", zh: "我们来唱首歌吧。", emoji: "🎵" },
+      { en: "May I come in?", zh: "我可以进来吗？", emoji: "🚪" },
+      { en: "Come in, please.", zh: "请进。", emoji: "😊" },
+    ],
+  },
+];
+
+const synth = window.speechSynthesis;
+let enVoices = [];
+let currentUnit = 0;
+let repeatTwice = false;
+
+const voiceSel = document.getElementById("voiceSel");
+const rateSel = document.getElementById("rate");
+const repeatBtn = document.getElementById("repeatBtn");
+const modeSel = document.getElementById("modeSel");
+const voiceLabel = document.getElementById("voiceLabel");
+
+modeSel.addEventListener("change", () => {
+  voiceLabel.style.display = modeSel.value === "sys" ? "" : "none";
+  prefetchUnit(currentUnit);
+  setTimeout(prefetchAll, 1500);
+});
+
+// 与 gen_audio.py 中的 slug() 保持一致
+function slug(text) {
+  return text.toLowerCase().replace(/[^a-z0-9]+/g, "_").replace(/^_+|_+$/g, "");
+}
+
+function audioUrl(text) {
+  return "audio/" + modeSel.value + "/" + slug(text) + ".mp3";
+}
+
+// 预加载：提前把 mp3 下载成 blob，点击时零等待
+const readyUrls = new Map();   // 网络地址 -> 本地 blob 地址
+const loadingUrls = new Set();
+function prefetch(url) {
+  if (readyUrls.has(url) || loadingUrls.has(url)) return;
+  loadingUrls.add(url);
+  fetch(url)
+    .then(r => { if (!r.ok) throw new Error(r.status); return r.blob(); })
+    .then(b => readyUrls.set(url, URL.createObjectURL(b)))
+    .catch(() => {})
+    .finally(() => loadingUrls.delete(url));
+}
+function prefetchUnit(i) {
+  if (modeSel.value === "sys") return;
+  const u = UNITS[i];
+  u.words.concat(u.sentences).forEach(item => prefetch(audioUrl(item.en)));
+}
+function prefetchAll() {
+  if (modeSel.value === "sys") return;
+  UNITS.forEach((u, i) => prefetchUnit(i));
+}
+
+let player = null;
+function stopAll() {
+  if (player) { player.pause(); player = null; }
+  if (synth) synth.cancel();
+  document.querySelectorAll(".card.playing").forEach(c => c.classList.remove("playing"));
+}
+
+// 优先播放预生成的真人 mp3，失败（文件缺失/未上传）时退回本机语音
+function playAudio(text, card) {
+  stopAll();
+  const url = audioUrl(text);
+  const a = new Audio(readyUrls.get(url) || url);
+  a.playbackRate = Number(rateSel.value);
+  if ("preservesPitch" in a) a.preservesPitch = true;
+  player = a;
+  if (card) card.classList.add("playing");
+  let played = 0;
+  a.onended = () => {
+    played++;
+    if (repeatTwice && played < 2) {
+      setTimeout(() => { if (player === a) { a.currentTime = 0; a.play(); } }, 400);
+    } else {
+      if (card) card.classList.remove("playing");
+      if (player === a) player = null;
+    }
+  };
+  a.onerror = () => { if (player === a) { player = null; speakTTS(text, card); } };
+  a.play().catch(() => { if (player === a) { player = null; speakTTS(text, card); } });
+}
+
+// macOS 自带的特效/卡通音色（羊叫、弹簧、唱歌、机器人等），不适合学习，全部过滤掉
+const NOVELTY = /albert|bad news|bahh|bells|boing|bubbles|cellos|good news|jester|organ|superstar|trinoids|whisper|wobble|zarvox|deranged|hysterical|junior|kathy|ralph|fred|grandma|grandpa|rocko|shelley|eddy|flo|reed|sandy/i;
+// 公认清晰自然的音色，排在最前面
+const PREFERRED = /samantha|google us english|ava|allison|alex|zoe|nicky|joelle|karen|daniel|serena|moira|tessa|microsoft/i;
+
+function loadVoices() {
+  const all = synth ? synth.getVoices() : [];
+  let list = all.filter(v => v.lang.toLowerCase().startsWith("en") && !NOVELTY.test(v.name));
+  if (list.length === 0) list = all.filter(v => v.lang.toLowerCase().startsWith("en"));
+  enVoices = list;
+  // 优先级：Google US English > 知名好音色 > 美音 > 英音 > 其他英语
+  enVoices.sort((a, b) => {
+    const score = v => (/google us english/i.test(v.name) ? 8 : 0) +
+      (PREFERRED.test(v.name) ? 4 : 0) +
+      (/en[-_]US/i.test(v.lang) ? 2 : /en[-_]GB/i.test(v.lang) ? 1 : 0);
+    return score(b) - score(a);
+  });
+  const prevName = voiceSel.selectedOptions[0] ? voiceSel.selectedOptions[0].textContent : "";
+  voiceSel.innerHTML = "";
+  enVoices.forEach((v, i) => {
+    const opt = document.createElement("option");
+    opt.value = i;
+    opt.textContent = v.name + " (" + v.lang + ")";
+    if (opt.textContent === prevName) opt.selected = true;
+    voiceSel.appendChild(opt);
+  });
+  document.getElementById("noVoiceWarn").style.display =
+    (!synth || enVoices.length === 0) ? "block" : "none";
+}
+loadVoices();
+if (synth && synth.onvoiceschanged !== undefined) {
+  synth.onvoiceschanged = loadVoices;
+}
+
+function speakTTS(text, card) {
+  if (!synth) return;
+  synth.cancel();
+  const u = new SpeechSynthesisUtterance(text);
+  u.lang = "en-US";
+  const v = enVoices[Number(voiceSel.value) || 0];
+  if (v) { u.voice = v; u.lang = v.lang; }
+  u.rate = Number(rateSel.value);
+  u.pitch = 1.05;
+
+  document.querySelectorAll(".card.playing").forEach(c => c.classList.remove("playing"));
+  if (card) card.classList.add("playing");
+
+  u.onend = () => {
+    if (repeatTwice) {
+      const u2 = new SpeechSynthesisUtterance(text);
+      u2.voice = u.voice; u2.lang = u.lang; u2.rate = u.rate; u2.pitch = u.pitch;
+      u2.onend = () => { if (card) card.classList.remove("playing"); };
+      setTimeout(() => synth.speak(u2), 400);
+    } else {
+      if (card) card.classList.remove("playing");
+    }
+  };
+  synth.speak(u);
+}
+
+repeatBtn.addEventListener("click", () => {
+  repeatTwice = !repeatTwice;
+  repeatBtn.textContent = "读两遍：" + (repeatTwice ? "开" : "关");
+  repeatBtn.classList.toggle("on", repeatTwice);
+});
+
+function makeCard(item, isSentence) {
+  const card = document.createElement("div");
+  card.className = "card" + (isSentence ? " sentence" : "");
+  if (isSentence) {
+    card.innerHTML =
+      '<div class="emoji">' + item.emoji + '</div>' +
+      '<div><div class="en">' + item.en + '</div>' +
+      '<div class="zh">' + item.zh + '</div></div>';
+  } else {
+    card.innerHTML =
+      '<div class="emoji">' + item.emoji + '</div>' +
+      '<div class="en">' + item.en + '</div>' +
+      '<div class="zh">' + item.zh + '</div>';
+  }
+  card.addEventListener("click", () => {
+    if (modeSel.value === "sys") speakTTS(item.en, card);
+    else playAudio(item.en, card);
+  });
+  return card;
+}
+
+function renderTabs() {
+  const tabs = document.getElementById("tabs");
+  tabs.innerHTML = "";
+  UNITS.forEach((u, i) => {
+    const b = document.createElement("button");
+    b.className = "tab" + (i === currentUnit ? " active" : "");
+    b.textContent = u.name;
+    b.addEventListener("click", () => {
+      currentUnit = i;
+      renderTabs();
+      renderUnit();
+    });
+    tabs.appendChild(b);
+  });
+}
+
+function renderUnit() {
+  stopAll();
+  const main = document.getElementById("content");
+  main.innerHTML = "";
+  const unit = UNITS[currentUnit];
+
+  const t1 = document.createElement("div");
+  t1.className = "section-title";
+  t1.textContent = "📚 单词和短语";
+  main.appendChild(t1);
+  const g1 = document.createElement("div");
+  g1.className = "grid";
+  unit.words.forEach(w => g1.appendChild(makeCard(w, false)));
+  main.appendChild(g1);
+
+  const t2 = document.createElement("div");
+  t2.className = "section-title";
+  t2.textContent = "💬 句子";
+  main.appendChild(t2);
+  const g2 = document.createElement("div");
+  g2.className = "grid sentences";
+  unit.sentences.forEach(s => g2.appendChild(makeCard(s, true)));
+  main.appendChild(g2);
+
+  prefetchUnit(currentUnit);
+}
+
+renderTabs();
+renderUnit();
+setTimeout(prefetchAll, 2000);
+
+// PWA：注册 Service Worker，把整站缓存到本机，离线可用、点击零延迟
+if ("serviceWorker" in navigator &&
+    (location.protocol === "https:" || location.hostname === "localhost")) {
+  navigator.serviceWorker.register("sw.js");
+}
+</script>
+</body>
+</html>
