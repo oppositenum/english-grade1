@@ -21,6 +21,7 @@ def main():
 
     asset_lines = ",\n  ".join(f'"{a}"' for a in assets)
     sw.write_text(f'''const CACHE = "kouyu-v{version}";
+const PREFIX = "kouyu-v";
 const ASSETS = [
   {asset_lines}
 ];
@@ -34,7 +35,7 @@ self.addEventListener("install", e => {{
 self.addEventListener("activate", e => {{
   e.waitUntil(
     caches.keys()
-      .then(keys => Promise.all(keys.filter(k => k !== CACHE).map(k => caches.delete(k))))
+      .then(keys => Promise.all(keys.filter(k => k.startsWith(PREFIX) && k !== CACHE).map(k => caches.delete(k))))
       .then(() => self.clients.claim())
   );
 }});

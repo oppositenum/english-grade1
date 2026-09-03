@@ -1,4 +1,5 @@
-const CACHE = "kouyu-v4";
+const CACHE = "kouyu-v5";
+const PREFIX = "kouyu-v";
 const ASSETS = [
   "./",
   "./index.html",
@@ -687,7 +688,7 @@ self.addEventListener("install", e => {
 self.addEventListener("activate", e => {
   e.waitUntil(
     caches.keys()
-      .then(keys => Promise.all(keys.filter(k => k !== CACHE).map(k => caches.delete(k))))
+      .then(keys => Promise.all(keys.filter(k => k.startsWith(PREFIX) && k !== CACHE).map(k => caches.delete(k))))
       .then(() => self.clients.claim())
   );
 });
