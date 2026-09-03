@@ -501,6 +501,24 @@ function prefetchAll() {
   UNITS.forEach((u, i) => prefetchUnit(i));
 }
 
+// 后台把四套音色全部拉一遍：每个请求经过 Service Worker 写入本机缓存，
+// 拉完即可完全离线；已缓存的请求秒回，不重复下载
+function warmAllVoices() {
+  const urls = [];
+  ["fish", "ava", "jenny", "ana"].forEach(m =>
+    UNITS.forEach(u => u.words.concat(u.sentences).forEach(it =>
+      urls.push("audio/" + m + "/" + slug(it.en) + ".mp3"))));
+  let i = 0;
+  const next = () => {
+    if (i >= urls.length) return;
+    fetch(urls[i++])
+      .then(r => (r.ok ? r.blob() : null))
+      .catch(() => {})
+      .finally(() => setTimeout(next, 25));
+  };
+  for (let k = 0; k < 4; k++) next();
+}
+
 let player = null;
 function stopAll() {
   if (player) { player.pause(); player = null; }
@@ -664,6 +682,7 @@ function renderUnit() {
 renderTabs();
 renderUnit();
 setTimeout(prefetchAll, 2000);
+setTimeout(warmAllVoices, 4000);
 
 // PWA：注册 Service Worker，把整站缓存到本机，离线可用、点击零延迟
 if ("serviceWorker" in navigator &&

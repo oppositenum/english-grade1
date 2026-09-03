@@ -6,11 +6,9 @@ from pathlib import Path
 ROOT = Path(__file__).parent
 
 def main():
+    # 安装时只预缓存核心文件；全部音频由页面前台逐个拉取、经 SW 落盘
+    # （iOS 会掐掉耗时过长的 SW 安装，一次性 addAll 几百个文件必然翻车）
     assets = ["./", "./index.html", "./manifest.json", "./icon-180.png"]
-    assets += sorted(
-        "./" + str(p.relative_to(ROOT))
-        for p in ROOT.glob("audio/*/*.mp3")
-    )
 
     version = 1
     sw = ROOT / "sw.js"
