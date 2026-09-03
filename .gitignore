@@ -2,3 +2,5 @@
 __pycache__/
 .DS_Store
 .env
+# 含服务器 IP/端口，不入库
+deploy.sh
