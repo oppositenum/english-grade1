@@ -187,6 +187,8 @@
 
 <div id="noVoiceWarn">⚠️ 当前浏览器没有找到英语语音，请换用 Safari 或 Chrome 浏览器试试。</div>
 
+<div id="cacheStat" style="text-align:center;font-size:12px;color:#a9b3bf;padding:2px 12px 0;"></div>
+
 <div class="tabs" id="tabs"></div>
 
 <main id="content"></main>
@@ -508,13 +510,25 @@ function warmAllVoices() {
   ["fish", "ava", "jenny", "ana"].forEach(m =>
     UNITS.forEach(u => u.words.concat(u.sentences).forEach(it =>
       urls.push("audio/" + m + "/" + slug(it.en) + ".mp3"))));
-  let i = 0;
+  const stat = document.getElementById("cacheStat");
+  let i = 0, ok = 0, fail = 0;
+  const upd = () => {
+    const done = ok + fail;
+    if (done < urls.length) {
+      stat.textContent = "⬇️ 音频缓存中 " + done + " / " + urls.length + "（缓存完成后可离线使用）";
+    } else if (fail > 0) {
+      stat.textContent = "⚠️ 还有 " + fail + " 条音频未缓存成功，下次联网打开会自动重试";
+    } else {
+      stat.textContent = "✅ 全部 " + urls.length + " 条音频已缓存，可离线使用";
+    }
+  };
+  upd();
   const next = () => {
     if (i >= urls.length) return;
     fetch(urls[i++])
-      .then(r => (r.ok ? r.blob() : null))
-      .catch(() => {})
-      .finally(() => setTimeout(next, 25));
+      .then(r => { if (r.ok) { ok++; return r.blob(); } fail++; return null; })
+      .catch(() => { fail++; })
+      .finally(() => { upd(); setTimeout(next, 25); });
   };
   for (let k = 0; k < 4; k++) next();
 }
