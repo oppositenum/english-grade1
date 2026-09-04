@@ -177,6 +177,142 @@
     font-size: 13px;
     padding: 20px 12px;
   }
+  /* 星星奖励栏 */
+  #rewardBar {
+    display: inline-flex;
+    align-items: center;
+    gap: 12px;
+    margin-top: 8px;
+    background: #fff;
+    border-radius: 20px;
+    padding: 6px 16px;
+    font-size: 15px;
+    font-weight: 700;
+    color: #e8930c;
+    box-shadow: 0 2px 6px rgba(0,0,0,.08);
+  }
+  #rewardBar .streak { color: #ff5d3a; }
+  /* 游戏入口按钮 */
+  .gamebtn {
+    display: block;
+    width: 100%;
+    margin: 14px 0 4px;
+    padding: 14px;
+    border: none;
+    border-radius: 16px;
+    background: linear-gradient(135deg, #ffb347, #ff7b54);
+    color: #fff;
+    font-size: 18px;
+    font-weight: 700;
+    cursor: pointer;
+    box-shadow: 0 4px 12px rgba(255,123,84,.35);
+  }
+  .gamebtn:active { transform: scale(.97); }
+  /* 游戏界面 */
+  .quiz-head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin: 14px 2px 12px;
+    font-size: 16px;
+    font-weight: 700;
+    color: #555;
+  }
+  .quiz-head button {
+    border: none;
+    background: #eef3f9;
+    border-radius: 12px;
+    padding: 6px 12px;
+    font-size: 14px;
+    cursor: pointer;
+    color: #567;
+  }
+  .quiz-listen {
+    display: block;
+    margin: 6px auto 16px;
+    border: none;
+    background: #fff;
+    border-radius: 50%;
+    width: 92px;
+    height: 92px;
+    font-size: 44px;
+    cursor: pointer;
+    box-shadow: 0 4px 12px rgba(0,0,0,.12);
+  }
+  .quiz-listen:active { transform: scale(.92); }
+  .quiz-opts {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 12px;
+  }
+  .quiz-opt {
+    border: 3px solid transparent;
+    background: #fff;
+    border-radius: 18px;
+    padding: 18px 10px;
+    text-align: center;
+    cursor: pointer;
+    box-shadow: 0 3px 8px rgba(0,0,0,.08);
+    font-family: inherit;
+  }
+  .quiz-opt .emoji { font-size: 46px; }
+  .quiz-opt .zh { font-size: 17px; color: #555; margin-top: 6px; font-weight: 700; }
+  .quiz-opt:active { transform: scale(.95); }
+  .quiz-opt.correct { border-color: #4caf50; background: #f0fff2; }
+  .quiz-opt.wrong { border-color: #ffb3a7; background: #fff5f3; opacity: .45; pointer-events: none; animation: shake .4s; }
+  @keyframes shake {
+    0%,100% { transform: translateX(0); }
+    25% { transform: translateX(-6px); }
+    75% { transform: translateX(6px); }
+  }
+  .quiz-result {
+    background: #fff;
+    border-radius: 20px;
+    padding: 28px 16px;
+    text-align: center;
+    box-shadow: 0 3px 10px rgba(0,0,0,.08);
+    margin-top: 14px;
+  }
+  .quiz-result .big { font-size: 52px; }
+  .quiz-result h2 { color: #ff7b54; margin: 10px 0 6px; }
+  .quiz-result p { color: #888; font-size: 15px; }
+  .quiz-result button {
+    margin: 14px 6px 0;
+    border: none;
+    border-radius: 14px;
+    padding: 12px 20px;
+    font-size: 16px;
+    font-weight: 700;
+    cursor: pointer;
+  }
+  .quiz-result .again { background: #ff7b54; color: #fff; }
+  .quiz-result .back { background: #eef3f9; color: #567; }
+  /* 彩带 & 提示 */
+  .confetti {
+    position: fixed;
+    top: -34px;
+    z-index: 999;
+    pointer-events: none;
+    animation: fall 1.6s linear forwards;
+  }
+  @keyframes fall {
+    to { transform: translateY(110vh) rotate(380deg); opacity: .75; }
+  }
+  #toast {
+    position: fixed;
+    left: 50%;
+    bottom: 30px;
+    transform: translateX(-50%);
+    background: rgba(60,50,40,.92);
+    color: #fff;
+    font-size: 15px;
+    padding: 10px 18px;
+    border-radius: 22px;
+    display: none;
+    z-index: 999;
+    max-width: 86%;
+    text-align: center;
+  }
   #noVoiceWarn {
     display: none;
     background: #fff3cd;
@@ -195,7 +331,10 @@
 <header>
   <h1>🐣 一年级英语口语 · 点一点跟我读</h1>
   <p>点一下卡片，听发音，跟着大声读出来吧！</p>
+  <div id="rewardBar"></div>
 </header>
+
+<div id="toast"></div>
 
 <div class="controls">
   <label>语速：
@@ -543,9 +682,11 @@ function prefetchAll() {
 // 拉完即可完全离线；已缓存的请求秒回，不重复下载
 async function warmAllVoices() {
   const urls = [];
-  ["fish", "ava", "jenny", "ana"].forEach(m =>
+  ["fish", "ava", "jenny", "ana"].forEach(m => {
     UNITS.forEach(u => u.words.concat(u.sentences).forEach(it =>
-      urls.push("audio/" + m + "/" + slug(it.en) + ".mp3"))));
+      urls.push("audio/" + m + "/" + slug(it.en) + ".mp3")));
+    PRAISE.forEach(p => urls.push("audio/" + m + "/" + slug(p.en) + ".mp3"));
+  });
   const stat = document.getElementById("cacheStat");
   let i = 0, ok = 0, fail = 0, dl = 0;
   // 音频放进独立缓存区（不带版本号），页面版本更新时不会被清掉
@@ -681,6 +822,83 @@ repeatBtn.addEventListener("click", () => {
   repeatBtn.classList.toggle("on", repeatTwice);
 });
 
+// ---------- 奖励体系：星星、连续天数、单元徽章（localStorage） ----------
+const PRAISE = [
+  { en: "Great job!" }, { en: "Well done!" }, { en: "Excellent!" },
+  { en: "You did it!" }, { en: "Wonderful!" }, { en: "Amazing!" },
+  { en: "Super!" }, { en: "Perfect!" },
+];
+const PKEY = "kouyu-progress";
+let prog = (() => { try { return JSON.parse(localStorage.getItem(PKEY)) || {}; } catch (e) { return {}; } })();
+prog.stars = prog.stars || 0;
+prog.badges = prog.badges || {};
+prog.days = prog.days || {};
+function saveProg() { localStorage.setItem(PKEY, JSON.stringify(prog)); }
+function dayKey(ts) {
+  const d = new Date(ts);
+  return d.getFullYear() + "-" + String(d.getMonth() + 1).padStart(2, "0") + "-" + String(d.getDate()).padStart(2, "0");
+}
+function streakDays() {
+  let n = 0, t = new Date(); t.setHours(12, 0, 0, 0);
+  let ts = t.getTime();
+  while (prog.days[dayKey(ts)]) { n++; ts -= 86400000; }
+  return n;
+}
+function addStars(n) {
+  prog.stars += n;
+  prog.days[dayKey(Date.now())] = 1;
+  saveProg();
+  renderRewards();
+}
+function renderRewards() {
+  const s = streakDays();
+  document.getElementById("rewardBar").innerHTML =
+    "⭐ " + prog.stars + " 颗星" +
+    (s > 0 ? ' <span class="streak">🔥 连续 ' + s + " 天</span>" : "");
+}
+
+let toastTimer = null;
+function toast(msg) {
+  const t = document.getElementById("toast");
+  t.textContent = msg;
+  t.style.display = "block";
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => { t.style.display = "none"; }, 2200);
+}
+
+function confetti(n) {
+  const EMO = ["🎉", "⭐", "🌟", "✨", "🎊", "💛"];
+  for (let k = 0; k < (n || 18); k++) {
+    const s = document.createElement("span");
+    s.className = "confetti";
+    s.textContent = EMO[k % EMO.length];
+    s.style.left = Math.random() * 100 + "vw";
+    s.style.animationDelay = (Math.random() * 0.4) + "s";
+    s.style.fontSize = (16 + Math.random() * 20) + "px";
+    document.body.appendChild(s);
+    setTimeout(() => s.remove(), 2200);
+  }
+}
+
+function playPraise() {
+  const p = PRAISE[Math.floor(Math.random() * PRAISE.length)];
+  if (modeSel.value === "sys") speakTTS(p.en, null);
+  else playAudio(p.en, null);
+}
+
+function checkBadge(ui) {
+  if (prog.badges[ui]) return;
+  const u = UNITS[ui];
+  const all = u.words.concat(u.sentences).every(it => recDone.has(slug(it.en)));
+  if (!all) return;
+  prog.badges[ui] = 1;
+  saveProg();
+  confetti(34);
+  toast("🏅 太棒了！「" + u.name + "」全部读完，获得单元徽章！");
+  setTimeout(playPraise, 400);
+  renderTabs();
+}
+
 // ---------- 录音打卡：孩子读一遍存在手机本地（IndexedDB），可回放、可重录 ----------
 let recDb = null;
 const recDone = new Set();   // 已有录音的 slug
@@ -728,11 +946,20 @@ async function toggleRec(item, card, btn) {
     btn.classList.remove("recording");
     const blob = new Blob(chunks, { type: mime || "audio/webm" });
     if (blob.size > 500) {
+      const isNew = !recDone.has(slug(item.en));
       saveRec(slug(item.en), blob);
       card.classList.add("recorded");
       const pb = card.querySelector(".playrec");
       if (pb) pb.style.display = "";
       btn.textContent = "🎤 重录";
+      if (isNew) {
+        addStars(1);
+        confetti(12);
+        toast("⭐ +1！读完一条啦");
+        checkBadge(currentUnit);
+      }
+      // 录完自动对比：先放标准音，再放孩子自己的
+      setTimeout(() => playCompare(item, card), 500);
     } else {
       btn.textContent = recDone.has(slug(item.en)) ? "🎤 重录" : "🎤 录音";
     }
@@ -742,6 +969,33 @@ async function toggleRec(item, card, btn) {
   btn.textContent = "⏹ 停止";
   mr.start();
   recTimer = setTimeout(() => { if (recorder === mr) mr.stop(); }, 15000);  // 最长 15 秒
+}
+
+// 对比听：标准音 → 孩子自己的录音
+async function playCompare(item, card) {
+  stopAll();
+  const blob = await getRec(slug(item.en));
+  if (!blob) return;
+  const playOwn = () => {
+    const own = new Audio(URL.createObjectURL(blob));
+    player = own;
+    if (card) card.classList.add("playing");
+    own.onended = () => {
+      if (card) card.classList.remove("playing");
+      URL.revokeObjectURL(own.src);
+      if (player === own) player = null;
+    };
+    own.play().catch(() => {});
+  };
+  if (modeSel.value === "sys") { playOwn(); return; }
+  const url = audioUrl(item.en);
+  const std = new Audio(readyUrls.get(url) || url);
+  std.playbackRate = Number(rateSel.value);
+  player = std;
+  if (card) card.classList.add("playing");
+  std.onended = () => setTimeout(playOwn, 300);
+  std.onerror = playOwn;
+  std.play().catch(playOwn);
 }
 
 async function playRec(item, card) {
@@ -797,13 +1051,87 @@ function makeCard(item, isSentence) {
   return card;
 }
 
+// ---------- 小游戏：猜猜我是谁（听音选卡） ----------
+let quiz = null;
+function shuffleArr(a) {
+  for (let i = a.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [a[i], a[j]] = [a[j], a[i]];
+  }
+  return a;
+}
+function startQuiz() {
+  const words = UNITS[currentUnit].words;
+  if (words.length < 4) { toast("这个单元的单词不够玩游戏哦"); return; }
+  quiz = { qs: shuffleArr(words.slice()).slice(0, 5), i: 0, miss: 0, gain: 0 };
+  renderQuiz();
+}
+function renderQuiz() {
+  stopAll();
+  const main = document.getElementById("content");
+  const q = quiz.qs[quiz.i];
+  const others = shuffleArr(UNITS[currentUnit].words.filter(w => w.zh !== q.zh)).slice(0, 3);
+  const opts = shuffleArr([q].concat(others));
+  main.innerHTML =
+    '<div class="quiz-head"><span>🎮 第 ' + (quiz.i + 1) + ' / ' + quiz.qs.length + ' 题</span>' +
+    '<span>本局 ⭐ +' + quiz.gain + '</span><button id="quizQuit">退出</button></div>' +
+    '<button class="quiz-listen" id="quizListen">🔊</button>' +
+    '<p style="text-align:center;color:#999;font-size:14px;margin:0 0 12px">听一听，点出对的卡片（点喇叭可以再听）</p>' +
+    '<div class="quiz-opts">' + opts.map((o, k) =>
+      '<button class="quiz-opt" data-k="' + k + '"><div class="emoji">' + o.emoji + '</div><div class="zh">' + o.zh + '</div></button>'
+    ).join("") + '</div>';
+  let firstTry = true, answered = false;
+  document.getElementById("quizQuit").onclick = () => { quiz = null; renderUnit(); };
+  document.getElementById("quizListen").onclick = () => playAudio(q.en, null);
+  main.querySelectorAll(".quiz-opt").forEach(btn => {
+    btn.addEventListener("click", () => {
+      if (answered) return;
+      const o = opts[Number(btn.dataset.k)];
+      if (o === q) {
+        answered = true;
+        btn.classList.add("correct");
+        const gain = firstTry ? 2 : 1;
+        quiz.gain += gain;
+        addStars(gain);
+        confetti(10);
+        playPraise();
+        setTimeout(nextQuiz, 1300);
+      } else {
+        firstTry = false;
+        quiz.miss++;
+        btn.classList.add("wrong");
+        setTimeout(() => playAudio(q.en, null), 350);
+      }
+    });
+  });
+  setTimeout(() => playAudio(q.en, null), 350);
+}
+function nextQuiz() {
+  if (!quiz) return;
+  quiz.i++;
+  if (quiz.i < quiz.qs.length) { renderQuiz(); return; }
+  const stars = quiz.miss === 0 ? "⭐⭐⭐" : quiz.miss <= 2 ? "⭐⭐" : "⭐";
+  const main = document.getElementById("content");
+  main.innerHTML =
+    '<div class="quiz-result"><div class="big">' + (quiz.miss === 0 ? "🏆" : "🎉") + '</div>' +
+    '<h2>' + stars + '</h2>' +
+    '<p>答完 ' + quiz.qs.length + ' 题，赢得 ' + quiz.gain + ' 颗星！' +
+    (quiz.miss === 0 ? "全对，太厉害了！" : "继续加油！") + '</p>' +
+    '<button class="again" id="quizAgain">🎮 再玩一次</button>' +
+    '<button class="back" id="quizBack">📖 返回课程</button></div>';
+  confetti(quiz.miss === 0 ? 40 : 20);
+  playPraise();
+  document.getElementById("quizAgain").onclick = startQuiz;
+  document.getElementById("quizBack").onclick = () => { quiz = null; renderUnit(); };
+}
+
 function renderTabs() {
   const tabs = document.getElementById("tabs");
   tabs.innerHTML = "";
   UNITS.forEach((u, i) => {
     const b = document.createElement("button");
     b.className = "tab" + (i === currentUnit ? " active" : "");
-    b.textContent = u.name;
+    b.textContent = (prog.badges[i] ? "🏅 " : "") + u.name;
     b.addEventListener("click", () => {
       currentUnit = i;
       renderTabs();
@@ -815,9 +1143,16 @@ function renderTabs() {
 
 function renderUnit() {
   stopAll();
+  quiz = null;
   const main = document.getElementById("content");
   main.innerHTML = "";
   const unit = UNITS[currentUnit];
+
+  const gbtn = document.createElement("button");
+  gbtn.className = "gamebtn";
+  gbtn.textContent = "🎮 猜猜我是谁 · 听音选一选";
+  gbtn.addEventListener("click", startQuiz);
+  main.appendChild(gbtn);
 
   const t1 = document.createElement("div");
   t1.className = "section-title";
@@ -842,6 +1177,7 @@ function renderUnit() {
 
 renderTabs();
 renderUnit();
+renderRewards();
 setTimeout(prefetchAll, 2000);
 setTimeout(warmAllVoices, 4000);
 
