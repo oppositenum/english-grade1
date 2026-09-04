@@ -100,6 +100,7 @@
   }
 
   .card {
+    position: relative;
     background: #fff;
     border-radius: 18px;
     padding: 14px 12px;
@@ -110,6 +111,41 @@
     transition: transform .12s, border-color .12s;
     user-select: none;
   }
+  .card .star {
+    display: none;
+    position: absolute;
+    top: 6px;
+    right: 8px;
+    font-size: 18px;
+  }
+  .card.recorded .star { display: block; }
+  .recbar {
+    display: flex;
+    justify-content: center;
+    gap: 8px;
+    margin-top: 10px;
+  }
+  .recbar button {
+    border: none;
+    border-radius: 14px;
+    padding: 6px 12px;
+    font-size: 14px;
+    background: #eef3f9;
+    color: #456;
+    cursor: pointer;
+  }
+  .recbar button:active { transform: scale(.94); }
+  .recbar .recbtn.recording {
+    background: #ff5252;
+    color: #fff;
+    animation: pulse 1s infinite;
+  }
+  @keyframes pulse {
+    0%,100% { opacity: 1; }
+    50% { opacity: .6; }
+  }
+  .card.sentence { flex-wrap: wrap; }
+  .card.sentence .recbar { width: 100%; justify-content: flex-start; margin-top: 8px; }
   .card:active { transform: scale(.94); }
   .card.playing {
     border-color: #ffb347;
@@ -629,6 +665,84 @@ repeatBtn.addEventListener("click", () => {
   repeatBtn.classList.toggle("on", repeatTwice);
 });
 
+// ---------- 录音打卡：孩子读一遍存在手机本地（IndexedDB），可回放、可重录 ----------
+let recDb = null;
+const recDone = new Set();   // 已有录音的 slug
+const dbReq = indexedDB.open("kouyu-rec", 1);
+dbReq.onupgradeneeded = e => e.target.result.createObjectStore("recs");
+dbReq.onsuccess = e => {
+  recDb = e.target.result;
+  const q = recDb.transaction("recs").objectStore("recs").getAllKeys();
+  q.onsuccess = () => { q.result.forEach(k => recDone.add(k)); renderUnit(); };
+};
+function saveRec(s, blob) {
+  if (!recDb) return;
+  recDb.transaction("recs", "readwrite").objectStore("recs").put(blob, s);
+  recDone.add(s);
+}
+function getRec(s) {
+  return new Promise(res => {
+    if (!recDb) return res(null);
+    const q = recDb.transaction("recs").objectStore("recs").get(s);
+    q.onsuccess = () => res(q.result || null);
+    q.onerror = () => res(null);
+  });
+}
+
+let recorder = null, recTimer = null;
+async function toggleRec(item, card, btn) {
+  if (recorder) { recorder.stop(); return; }   // 再点一下 = 停止
+  stopAll();
+  let stream;
+  try {
+    stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+  } catch (e) {
+    alert("无法使用麦克风。请在弹窗或系统设置里允许本页面使用麦克风；如果是主屏幕图标打开的，也可以试试用 Safari 打开。");
+    return;
+  }
+  const mime = MediaRecorder.isTypeSupported("audio/mp4") ? "audio/mp4"
+    : MediaRecorder.isTypeSupported("audio/webm") ? "audio/webm" : "";
+  const mr = new MediaRecorder(stream, mime ? { mimeType: mime } : undefined);
+  const chunks = [];
+  mr.ondataavailable = e => { if (e.data.size) chunks.push(e.data); };
+  mr.onstop = () => {
+    stream.getTracks().forEach(t => t.stop());
+    clearTimeout(recTimer);
+    recorder = null;
+    btn.classList.remove("recording");
+    const blob = new Blob(chunks, { type: mime || "audio/webm" });
+    if (blob.size > 500) {
+      saveRec(slug(item.en), blob);
+      card.classList.add("recorded");
+      const pb = card.querySelector(".playrec");
+      if (pb) pb.style.display = "";
+      btn.textContent = "🎤 重录";
+    } else {
+      btn.textContent = recDone.has(slug(item.en)) ? "🎤 重录" : "🎤 录音";
+    }
+  };
+  recorder = mr;
+  btn.classList.add("recording");
+  btn.textContent = "⏹ 停止";
+  mr.start();
+  recTimer = setTimeout(() => { if (recorder === mr) mr.stop(); }, 15000);  // 最长 15 秒
+}
+
+async function playRec(item, card) {
+  stopAll();
+  const blob = await getRec(slug(item.en));
+  if (!blob) return;
+  const a = new Audio(URL.createObjectURL(blob));
+  player = a;
+  if (card) card.classList.add("playing");
+  a.onended = () => {
+    if (card) card.classList.remove("playing");
+    URL.revokeObjectURL(a.src);
+    if (player === a) player = null;
+  };
+  a.play().catch(() => {});
+}
+
 function makeCard(item, isSentence) {
   const card = document.createElement("div");
   card.className = "card" + (isSentence ? " sentence" : "");
@@ -647,6 +761,23 @@ function makeCard(item, isSentence) {
     if (modeSel.value === "sys") speakTTS(item.en, card);
     else playAudio(item.en, card);
   });
+
+  const s = slug(item.en);
+  const has = recDone.has(s);
+  if (has) card.classList.add("recorded");
+  const star = document.createElement("span");
+  star.className = "star";
+  star.textContent = "⭐";
+  card.appendChild(star);
+  const bar = document.createElement("div");
+  bar.className = "recbar";
+  bar.innerHTML =
+    '<button class="recbtn">' + (has ? "🎤 重录" : "🎤 录音") + '</button>' +
+    '<button class="playrec"' + (has ? "" : ' style="display:none"') + '>▶️ 我读的</button>';
+  bar.addEventListener("click", e => e.stopPropagation());
+  bar.querySelector(".recbtn").addEventListener("click", () => toggleRec(item, card, bar.querySelector(".recbtn")));
+  bar.querySelector(".playrec").addEventListener("click", () => playRec(item, card));
+  card.appendChild(bar);
   return card;
 }
 
