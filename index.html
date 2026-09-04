@@ -541,32 +541,48 @@ function prefetchAll() {
 
 // 后台把四套音色全部拉一遍：每个请求经过 Service Worker 写入本机缓存，
 // 拉完即可完全离线；已缓存的请求秒回，不重复下载
-function warmAllVoices() {
+async function warmAllVoices() {
   const urls = [];
   ["fish", "ava", "jenny", "ana"].forEach(m =>
     UNITS.forEach(u => u.words.concat(u.sentences).forEach(it =>
       urls.push("audio/" + m + "/" + slug(it.en) + ".mp3"))));
   const stat = document.getElementById("cacheStat");
-  let i = 0, ok = 0, fail = 0;
+  let i = 0, ok = 0, fail = 0, dl = 0;
+  // 音频放进独立缓存区（不带版本号），页面版本更新时不会被清掉
+  let cache = null;
+  try { if ("caches" in window) cache = await caches.open("kouyu-audio"); } catch (e) {}
   const upd = () => {
     const done = ok + fail;
     if (done < urls.length) {
-      stat.textContent = "⬇️ 音频缓存中 " + done + " / " + urls.length + "（缓存完成后可离线使用）";
+      stat.textContent = "🔍 检查音频 " + done + " / " + urls.length + (dl ? "（已下载 " + dl + " 条）" : "");
     } else if (fail > 0) {
       stat.textContent = "⚠️ 还有 " + fail + " 条音频未缓存成功，下次联网打开会自动重试";
+    } else if (dl > 0) {
+      stat.textContent = "✅ 全部 " + urls.length + " 条音频已缓存（本次新增 " + dl + " 条），可离线使用";
     } else {
-      stat.textContent = "✅ 全部 " + urls.length + " 条音频已缓存，可离线使用";
+      stat.textContent = "✅ 全部 " + urls.length + " 条音频已在本机，可离线使用";
     }
   };
   upd();
-  const next = () => {
-    if (i >= urls.length) return;
-    fetch(urls[i++])
-      .then(r => { if (r.ok) { ok++; return r.blob(); } fail++; return null; })
-      .catch(() => { fail++; })
-      .finally(() => { upd(); setTimeout(next, 25); });
-  };
-  for (let k = 0; k < 4; k++) next();
+  async function worker() {
+    while (i < urls.length) {
+      const url = urls[i++];
+      try {
+        // 本机已有 → 毫秒级跳过，不发网络请求
+        if ((cache && await cache.match(url)) || ("caches" in window && await caches.match(url))) {
+          ok++; upd(); continue;
+        }
+      } catch (e) {}
+      try {
+        const r = await fetch(url);
+        if (r.ok) { if (cache) await cache.put(url, r.clone()); await r.blob(); ok++; dl++; }
+        else fail++;
+      } catch (e) { fail++; }
+      upd();
+      await new Promise(res => setTimeout(res, 20));
+    }
+  }
+  await Promise.all([worker(), worker(), worker(), worker()]);
 }
 
 let player = null;
