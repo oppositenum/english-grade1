@@ -287,6 +287,56 @@
   }
   .quiz-result .again { background: #ff7b54; color: #fff; }
   .quiz-result .back { background: #eef3f9; color: #567; }
+  /* 字母卡 */
+  .card .letter {
+    font-size: 46px;
+    font-weight: 800;
+    line-height: 1.1;
+    color: #ff7b54;
+    font-family: "Comic Sans MS", "Chalkboard SE", sans-serif;
+  }
+  /* 配音秀 */
+  .dlg-line { display: flex; gap: 8px; margin: 12px 0; align-items: flex-start; }
+  .dlg-line.b { flex-direction: row-reverse; }
+  .dlg-line .who {
+    flex: 0 0 auto;
+    width: 36px; height: 36px;
+    border-radius: 50%;
+    background: #4a90d9;
+    color: #fff;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 18px;
+  }
+  .dlg-line.b .who { background: #ff7b54; }
+  .bubble {
+    position: relative;
+    max-width: 78%;
+    background: #fff;
+    border: 2px solid transparent;
+    border-radius: 16px;
+    padding: 10px 14px;
+    box-shadow: 0 2px 6px rgba(0,0,0,.08);
+    cursor: pointer;
+    user-select: none;
+  }
+  .dlg-line.b .bubble { background: #fff3e6; }
+  .bubble.playing { border-color: #ffb347; }
+  .bubble .en { font-weight: 700; color: #2c6fb7; font-size: 17px; }
+  .bubble .zh { font-size: 13px; color: #999; margin-top: 3px; }
+  .bubble .star { top: -10px; right: -6px; }
+  .bubble .recbar { margin-top: 8px; justify-content: flex-start; }
+  .dlg-top {
+    display: flex; align-items: center; gap: 8px; flex-wrap: wrap;
+    margin: 14px 0 4px;
+  }
+  .dlg-top button {
+    border: none; border-radius: 14px; padding: 9px 14px;
+    font-size: 14px; font-weight: 700; cursor: pointer;
+  }
+  .dlg-top .back { background: #eef3f9; color: #567; }
+  .dlg-top .demo { background: #4a90d9; color: #fff; }
+  .dlg-top .mine { background: #ff7b54; color: #fff; }
+  .dlg-hint { text-align: center; color: #aab; font-size: 13px; margin: 6px 0 0; }
   /* 彩带 & 提示 */
   .confetti {
     position: fixed;
@@ -671,6 +721,7 @@ function prefetch(url) {
 function prefetchUnit(i) {
   if (modeSel.value === "sys") return;
   const u = UNITS[i];
+  if (!u) return;
   u.words.concat(u.sentences).forEach(item => prefetch(audioUrl(item.en)));
 }
 function prefetchAll() {
@@ -683,9 +734,11 @@ function prefetchAll() {
 async function warmAllVoices() {
   const urls = [];
   ["fish", "ava", "jenny", "ana"].forEach(m => {
-    UNITS.forEach(u => u.words.concat(u.sentences).forEach(it =>
-      urls.push("audio/" + m + "/" + slug(it.en) + ".mp3")));
-    PRAISE.forEach(p => urls.push("audio/" + m + "/" + slug(p.en) + ".mp3"));
+    const add = t => urls.push("audio/" + m + "/" + slug(t) + ".mp3");
+    UNITS.forEach(u => u.words.concat(u.sentences).forEach(it => add(it.en)));
+    ALPHABET.forEach(l => add(l.en));
+    DIALOGS.forEach(d => d.lines.forEach(l => add(l.en)));
+    PRAISE.forEach(p => add(p.en));
   });
   const stat = document.getElementById("cacheStat");
   let i = 0, ok = 0, fail = 0, dl = 0;
@@ -828,11 +881,76 @@ const PRAISE = [
   { en: "You did it!" }, { en: "Wonderful!" }, { en: "Amazing!" },
   { en: "Super!" }, { en: "Perfect!" },
 ];
+// ---------- 字母 ABC（点击读：字母名 + 代表词） ----------
+const ALPHABET = [
+  { letter: "Aa", en: "A! A for apple.", word: "apple", zh: "苹果", emoji: "🍎" },
+  { letter: "Bb", en: "B! B for ball.", word: "ball", zh: "球", emoji: "⚽" },
+  { letter: "Cc", en: "C! C for cat.", word: "cat", zh: "猫", emoji: "🐱" },
+  { letter: "Dd", en: "D! D for dog.", word: "dog", zh: "狗", emoji: "🐶" },
+  { letter: "Ee", en: "E! E for egg.", word: "egg", zh: "鸡蛋", emoji: "🥚" },
+  { letter: "Ff", en: "F! F for fish.", word: "fish", zh: "鱼", emoji: "🐟" },
+  { letter: "Gg", en: "G! G for gift.", word: "gift", zh: "礼物", emoji: "🎁" },
+  { letter: "Hh", en: "H! H for hat.", word: "hat", zh: "帽子", emoji: "🎩" },
+  { letter: "Ii", en: "I! I for ice cream.", word: "ice cream", zh: "冰淇淋", emoji: "🍦" },
+  { letter: "Jj", en: "J! J for juice.", word: "juice", zh: "果汁", emoji: "🧃" },
+  { letter: "Kk", en: "K! K for kite.", word: "kite", zh: "风筝", emoji: "🪁" },
+  { letter: "Ll", en: "L! L for lion.", word: "lion", zh: "狮子", emoji: "🦁" },
+  { letter: "Mm", en: "M! M for monkey.", word: "monkey", zh: "猴子", emoji: "🐵" },
+  { letter: "Nn", en: "N! N for nose.", word: "nose", zh: "鼻子", emoji: "👃" },
+  { letter: "Oo", en: "O! O for orange.", word: "orange", zh: "橙子", emoji: "🍊" },
+  { letter: "Pp", en: "P! P for pig.", word: "pig", zh: "猪", emoji: "🐷" },
+  { letter: "Qq", en: "Q! Q for queen.", word: "queen", zh: "女王", emoji: "👑" },
+  { letter: "Rr", en: "R! R for rabbit.", word: "rabbit", zh: "兔子", emoji: "🐰" },
+  { letter: "Ss", en: "S! S for sun.", word: "sun", zh: "太阳", emoji: "☀️" },
+  { letter: "Tt", en: "T! T for tiger.", word: "tiger", zh: "老虎", emoji: "🐯" },
+  { letter: "Uu", en: "U! U for umbrella.", word: "umbrella", zh: "雨伞", emoji: "☂️" },
+  { letter: "Vv", en: "V! V for van.", word: "van", zh: "面包车", emoji: "🚐" },
+  { letter: "Ww", en: "W! W for watermelon.", word: "watermelon", zh: "西瓜", emoji: "🍉" },
+  { letter: "Xx", en: "X! X in box.", word: "box", zh: "盒子", emoji: "📦" },
+  { letter: "Yy", en: "Y! Y for yo-yo.", word: "yo-yo", zh: "悠悠球", emoji: "🪀" },
+  { letter: "Zz", en: "Z! Z for zebra.", word: "zebra", zh: "斑马", emoji: "🦓" },
+];
+
+// ---------- 配音秀：Sarah 读 A 角色，孩子录 B 角色，最后合成整段对话 ----------
+const DIALOGS = [
+  { title: "认识新朋友", emoji: "👋", lines: [
+    { who: "A", en: "Hello! What's your name?", zh: "你好！你叫什么名字？" },
+    { who: "B", en: "My name is Andy.", zh: "我叫安迪。" },
+    { who: "A", en: "Nice to meet you, Andy!", zh: "很高兴认识你，安迪！" },
+    { who: "B", en: "Nice to meet you, too!", zh: "我也很高兴认识你！" },
+  ]},
+  { title: "早上到学校", emoji: "🏫", lines: [
+    { who: "A", en: "Good morning!", zh: "早上好！" },
+    { who: "B", en: "Good morning, Mr Leo.", zh: "早上好，里奥老师。" },
+    { who: "A", en: "How are you today?", zh: "你今天好吗？" },
+    { who: "B", en: "I'm fine, thank you!", zh: "我很好，谢谢！" },
+  ]},
+  { title: "借文具", emoji: "✏️", lines: [
+    { who: "A", en: "Show me your pencil, please.", zh: "请给我看看你的铅笔。" },
+    { who: "B", en: "Here you are.", zh: "给你。" },
+    { who: "A", en: "Thank you!", zh: "谢谢！" },
+    { who: "B", en: "You're welcome.", zh: "不客气。" },
+  ]},
+  { title: "数一数", emoji: "🐱", lines: [
+    { who: "A", en: "How many cats can you see?", zh: "你能看到几只猫？" },
+    { who: "B", en: "I can see three cats.", zh: "我能看到三只猫。" },
+    { who: "A", en: "What colour are they?", zh: "它们是什么颜色的？" },
+    { who: "B", en: "They are white.", zh: "它们是白色的。" },
+  ]},
+  { title: "吃水果", emoji: "🍎", lines: [
+    { who: "A", en: "Do you like apples?", zh: "你喜欢苹果吗？" },
+    { who: "B", en: "Yes, I do.", zh: "是的，我喜欢。" },
+    { who: "A", en: "Have some apples, please.", zh: "请吃点苹果吧。" },
+    { who: "B", en: "Thank you very much!", zh: "非常感谢！" },
+  ]},
+];
+
 const PKEY = "kouyu-progress";
 let prog = (() => { try { return JSON.parse(localStorage.getItem(PKEY)) || {}; } catch (e) { return {}; } })();
 prog.stars = prog.stars || 0;
 prog.badges = prog.badges || {};
 prog.days = prog.days || {};
+prog.dub = prog.dub || {};
 function saveProg() { localStorage.setItem(PKEY, JSON.stringify(prog)); }
 function dayKey(ts) {
   const d = new Date(ts);
@@ -886,9 +1004,22 @@ function playPraise() {
   else playAudio(p.en, null);
 }
 
+let curDialog = -1;
+function checkDialogDone() {
+  if (curDialog < 0 || prog.dub[curDialog]) return;
+  const d = DIALOGS[curDialog];
+  const all = d.lines.filter(l => l.who === "B").every(l => recDone.has(slug(l.en)));
+  if (!all) return;
+  prog.dub[curDialog] = 1;
+  saveProg();
+  addStars(3);
+  confetti(30);
+  toast("🎬 配音完成！奖励 3 颗星，点「我的配音」听整段吧");
+}
+
 function checkBadge(ui) {
-  if (prog.badges[ui]) return;
   const u = UNITS[ui];
+  if (!u || prog.badges[ui]) return;
   const all = u.words.concat(u.sentences).every(it => recDone.has(slug(it.en)));
   if (!all) return;
   prog.badges[ui] = 1;
@@ -957,6 +1088,7 @@ async function toggleRec(item, card, btn) {
         confetti(12);
         toast("⭐ +1！读完一条啦");
         checkBadge(currentUnit);
+        checkDialogDone();
       }
       // 录完自动对比：先放标准音，再放孩子自己的
       setTimeout(() => playCompare(item, card), 500);
@@ -1032,8 +1164,13 @@ function makeCard(item, isSentence) {
     else playAudio(item.en, card);
   });
 
-  const s = slug(item.en);
-  const has = recDone.has(s);
+  addRecBar(item, card);
+  return card;
+}
+
+// 给任意卡片/气泡挂上录音条（🎤 录音、▶️ 我读的、⭐ 标记）
+function addRecBar(item, card) {
+  const has = recDone.has(slug(item.en));
   if (has) card.classList.add("recorded");
   const star = document.createElement("span");
   star.className = "star";
@@ -1048,7 +1185,6 @@ function makeCard(item, isSentence) {
   bar.querySelector(".recbtn").addEventListener("click", () => toggleRec(item, card, bar.querySelector(".recbtn")));
   bar.querySelector(".playrec").addEventListener("click", () => playRec(item, card));
   card.appendChild(bar);
-  return card;
 }
 
 // ---------- 小游戏：猜猜我是谁（听音选卡） ----------
@@ -1128,12 +1264,15 @@ function nextQuiz() {
 function renderTabs() {
   const tabs = document.getElementById("tabs");
   tabs.innerHTML = "";
-  UNITS.forEach((u, i) => {
+  const entries = [{ id: -1, label: "🔤 字母ABC" }]
+    .concat(UNITS.map((u, i) => ({ id: i, label: (prog.badges[i] ? "🏅 " : "") + u.name })))
+    .concat([{ id: -2, label: "🎬 配音秀" }]);
+  entries.forEach(t => {
     const b = document.createElement("button");
-    b.className = "tab" + (i === currentUnit ? " active" : "");
-    b.textContent = (prog.badges[i] ? "🏅 " : "") + u.name;
+    b.className = "tab" + (t.id === currentUnit ? " active" : "");
+    b.textContent = t.label;
     b.addEventListener("click", () => {
-      currentUnit = i;
+      currentUnit = t.id;
       renderTabs();
       renderUnit();
     });
@@ -1141,11 +1280,141 @@ function renderTabs() {
   });
 }
 
+// ---------- 字母 ABC 视图 ----------
+function renderAbc() {
+  const main = document.getElementById("content");
+  const t = document.createElement("div");
+  t.className = "section-title";
+  t.textContent = "🔤 26 个字母 · 点一点跟我读";
+  main.appendChild(t);
+  const g = document.createElement("div");
+  g.className = "grid";
+  ALPHABET.forEach(l => {
+    const card = document.createElement("div");
+    card.className = "card";
+    card.innerHTML =
+      '<div class="letter">' + l.letter + '</div>' +
+      '<div class="emoji" style="font-size:38px">' + l.emoji + '</div>' +
+      '<div class="en">' + l.word + '</div>' +
+      '<div class="zh">' + l.zh + '</div>';
+    card.addEventListener("click", () => {
+      if (modeSel.value === "sys") speakTTS(l.en, card);
+      else playAudio(l.en, card);
+    });
+    addRecBar(l, card);
+    g.appendChild(card);
+  });
+  main.appendChild(g);
+}
+
+// ---------- 配音秀视图 ----------
+function renderDialogs() {
+  const main = document.getElementById("content");
+  const t = document.createElement("div");
+  t.className = "section-title";
+  t.textContent = "🎬 配音秀 · Sarah 演 A，你来演 B";
+  main.appendChild(t);
+  const g = document.createElement("div");
+  g.className = "grid sentences";
+  DIALOGS.forEach((d, i) => {
+    const card = document.createElement("div");
+    card.className = "card sentence";
+    card.innerHTML =
+      '<div class="emoji">' + d.emoji + '</div>' +
+      '<div><div class="en">' + d.title + (prog.dub[i] ? " 🎬✓" : "") + '</div>' +
+      '<div class="zh">' + d.lines.length + ' 句对话 · 你要录 ' +
+      d.lines.filter(l => l.who === "B").length + ' 句</div></div>';
+    card.addEventListener("click", () => { curDialog = i; renderDialog(); });
+    g.appendChild(card);
+  });
+  main.appendChild(g);
+}
+
+function renderDialog() {
+  stopAll();
+  const main = document.getElementById("content");
+  main.innerHTML = "";
+  const d = DIALOGS[curDialog];
+  const top = document.createElement("div");
+  top.className = "dlg-top";
+  top.innerHTML =
+    '<button class="back">← 返回</button>' +
+    '<b style="font-size:17px">' + d.emoji + " " + d.title + '</b>' +
+    '<span style="flex:1"></span>' +
+    '<button class="demo">▶️ 听示范</button>' +
+    '<button class="mine">🎬 我的配音</button>';
+  top.querySelector(".back").addEventListener("click", () => { curDialog = -1; renderUnit(); });
+  top.querySelector(".demo").addEventListener("click", () => playDialog(d, false));
+  top.querySelector(".mine").addEventListener("click", () => playDialog(d, true));
+  main.appendChild(top);
+  const hint = document.createElement("p");
+  hint.className = "dlg-hint";
+  hint.textContent = "点蓝色气泡听 Sarah 读；橙色气泡是你的台词，先听一遍再点 🎤 录下来";
+  main.appendChild(hint);
+  d.lines.forEach((line, k) => {
+    const row = document.createElement("div");
+    row.className = "dlg-line " + (line.who === "B" ? "b" : "a");
+    const who = document.createElement("div");
+    who.className = "who";
+    who.textContent = line.who === "B" ? "👶" : "👩";
+    const bubble = document.createElement("div");
+    bubble.className = "bubble";
+    bubble.dataset.line = k;
+    bubble.innerHTML = '<div class="en">' + line.en + '</div><div class="zh">' + line.zh + '</div>';
+    bubble.addEventListener("click", () => {
+      if (modeSel.value === "sys") speakTTS(line.en, bubble);
+      else playAudio(line.en, bubble);
+    });
+    if (line.who === "B") addRecBar(line, bubble);
+    row.appendChild(who);
+    row.appendChild(bubble);
+    main.appendChild(row);
+  });
+}
+
+// 整段播放：A 永远标准音；useKid=true 时 B 用孩子的录音（没录的先用标准音顶上）
+async function playDialog(d, useKid) {
+  stopAll();
+  let i = 0;
+  const playNext = async () => {
+    if (i >= d.lines.length) return;
+    const line = d.lines[i];
+    const bubble = document.querySelector('.bubble[data-line="' + i + '"]');
+    i++;
+    document.querySelectorAll(".bubble.playing").forEach(b => b.classList.remove("playing"));
+    if (bubble) bubble.classList.add("playing");
+    const done = () => {
+      if (bubble) bubble.classList.remove("playing");
+      setTimeout(playNext, 350);
+    };
+    let a = null;
+    if (useKid && line.who === "B") {
+      const blob = await getRec(slug(line.en));
+      if (blob) {
+        a = new Audio(URL.createObjectURL(blob));
+        a.onended = () => { URL.revokeObjectURL(a.src); done(); };
+      }
+    }
+    if (!a) {
+      const url = audioUrl(line.en);
+      a = new Audio(readyUrls.get(url) || url);
+      a.playbackRate = Number(rateSel.value);
+      a.onended = done;
+    }
+    a.onerror = done;
+    player = a;
+    a.play().catch(done);
+  };
+  playNext();
+}
+
 function renderUnit() {
   stopAll();
   quiz = null;
   const main = document.getElementById("content");
   main.innerHTML = "";
+  if (currentUnit === -1) { renderAbc(); return; }
+  if (currentUnit === -2) { renderDialogs(); return; }
   const unit = UNITS[currentUnit];
 
   const gbtn = document.createElement("button");
